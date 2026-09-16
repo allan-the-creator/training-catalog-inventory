@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gift Inventory</title>
+<style>
+:root{--ink:#171717;--muted:#6f6f6f;--line:#e8e8e8;--soft:#f6f6f3;--card:#fff}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:#fafaf8}
+header{position:sticky;top:0;z-index:10;background:rgba(250,250,248,.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.header-inner{max-width:1400px;margin:auto;padding:22px 28px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+.brand{font-weight:750;letter-spacing:-.03em;font-size:22px}.sub{font-size:12px;color:var(--muted);margin-top:3px}
+.cart-btn{border:1px solid #1d1d1d;background:#1d1d1d;color:#fff;border-radius:999px;padding:11px 17px;font-weight:650;cursor:pointer}
+main{max-width:1400px;margin:auto;padding:34px 28px 80px}
+.hero{display:flex;justify-content:space-between;align-items:end;gap:20px;margin-bottom:25px}
+h1{font-size:38px;letter-spacing:-.05em;margin:0 0 8px}.intro{color:var(--muted);margin:0}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin:20px 0 30px}
+.filter{border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 15px;cursor:pointer;font-weight:600;color:#555}
+.filter.active{background:#1d1d1d;color:white;border-color:#1d1d1d}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.photo{height:275px;background:#f1f1ee;display:flex;align-items:center;justify-content:center;padding:18px}
+.photo img{width:100%;height:100%;object-fit:contain;mix-blend-mode:multiply}
+.body{padding:17px}.cat{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:#888;font-weight:750}.name{font-size:17px;font-weight:700;margin:7px 0}.avail{font-size:12px;color:var(--muted);margin-bottom:12px}
+.size-row{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 12px}.size{border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 9px;font-size:11px;cursor:pointer}.size.selected{border-color:#1d1d1d;background:#1d1d1d;color:#fff}.size-selected{font-size:11px;color:var(--muted)}.selected-size-label{font-size:12px;font-weight:650;color:var(--muted)}
+.controls{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--line);padding-top:12px;margin-top:auto}
+.qty{display:flex;align-items:center;gap:8px}.qty button{width:29px;height:29px;border-radius:50%;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:17px}.qty strong{min-width:20px;text-align:center}
+.select{border:0;background:#1d1d1d;color:white;border-radius:9px;padding:9px 12px;font-weight:650;cursor:pointer}.select:disabled{background:#ddd;cursor:not-allowed}
+.empty{grid-column:1/-1;text-align:center;padding:60px;color:var(--muted)}
+.drawer{position:fixed;inset:0;z-index:30;display:none}.drawer.open{display:block}.shade{position:absolute;inset:0;background:rgba(0,0,0,.38)}.panel{position:absolute;right:0;top:0;height:100%;width:min(520px,94vw);background:#fff;padding:28px;display:flex;flex-direction:column;box-shadow:-15px 0 40px rgba(0,0,0,.12)}
+.panel-head{display:flex;justify-content:space-between;align-items:center}.panel h2{margin:0;font-size:26px}.close{border:0;background:#f2f2f0;border-radius:50%;width:36px;height:36px;cursor:pointer;font-size:20px}
+.selection{overflow:auto;flex:1;margin:20px 0}.line{padding:14px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px}.line-name{font-weight:650}.line-meta{font-size:12px;color:var(--muted);margin-top:4px}.line-qty{font-weight:750}
+.footer-actions{border-top:1px solid var(--line);padding-top:18px}.email{width:100%;padding:13px;border:0;border-radius:10px;background:#1d1d1d;color:#fff;font-weight:700;cursor:pointer}.clear{width:100%;padding:11px;margin-top:8px;border:1px solid var(--line);border-radius:10px;background:#fff;cursor:pointer}
+.note{font-size:11px;color:var(--muted);margin-top:10px;line-height:1.4}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#1d1d1d;color:#fff;padding:11px 15px;border-radius:999px;font-size:13px;display:none;z-index:50}
+@media(max-width:1050px){.grid{grid-template-columns:repeat(3,1fr)}}@media(max-width:760px){.grid{grid-template-columns:repeat(2,1fr)}.photo{height:230px}h1{font-size:30px}}@media(max-width:520px){.grid{grid-template-columns:1fr}.header-inner,main{padding-left:16px;padding-right:16px}.hero{display:block}.cart-btn{margin-top:15px}.photo{height:280px}}
+</style>
+</head>
+<body>
+<header><div class="header-inner"><div><div class="brand">Gift Inventory</div><div class="sub">Internal gift selection catalogue</div></div><button class="cart-btn" onclick="openDrawer()">Selection <span id="count">(0)</span></button></div></header>
+<main>
+<section class="hero"><div><h1>Choose gifts to set aside</h1><p class="intro">Browse the available inventory and build a selection request.</p></div></section>
+<nav class="filters" id="filters"></nav>
+<section class="grid" id="grid"></section>
+</main>
+
+<div class="drawer" id="drawer"><div class="shade" onclick="closeDrawer()"></div><aside class="panel">
+<div class="panel-head"><h2>Your selection</h2><button class="close" onclick="closeDrawer()">×</button></div>
+<div class="selection" id="selection"></div>
+<div class="footer-actions"><button class="email" onclick="sendEmail()">Send selection by email</button><button class="clear" onclick="clearSelection()">Clear selection</button><div class="note">The email will open in your default mail application addressed to allan_bertoldo@hotmail.com.</div></div>
+</aside></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const items = [{"name": "B logo Cap", "qty": 5, "sizes": {}, "image": "B logo Cap.jpeg", "category": "Hats"}, {"name": "Note Pad", "qty": 23, "sizes": {}, "image": "Note Pad.jpg", "category": "Other"}, {"name": "Week End Bag with patches LAND", "qty": 20, "sizes": {}, "image": "Week End Bag with patches LAND .jpeg", "category": "Bags"}, {"name": "TUMI Backpack", "qty": 10, "sizes": {}, "image": "TUMI Backpack.jpg", "category": "Bags"}, {"name": "TUMI Brief", "qty": 9, "sizes": {}, "image": "TUMI Brief.jpeg", "category": "Bags"}, {"name": "TUMI Carry On", "qty": 9, "sizes": {}, "image": "TUMI carry on .jpeg", "category": "Bags"}, {"name": "Model Plane", "qty": 5, "sizes": {}, "image": "Model Plane .jpeg", "category": "Other"}, {"name": "Kid Bike", "qty": 3, "sizes": {}, "image": "Kid Bike.jpeg", "category": "Other"}, {"name": "WeekEnd Bag Leather", "qty": 11, "sizes": {}, "image": "Weekend Bag Leather.jpg.webp", "category": "Bags"}, {"name": "Week End Bag Green", "qty": 18, "sizes": {}, "image": "Week End Bag Green  .jpg.webp", "category": "Bags"}, {"name": "Travel Pouch Watches", "qty": 20, "sizes": {}, "image": "Travel pouch watches.webp", "category": "Accessories"}, {"name": "Towels Top Time", "qty": 5, "sizes": {}, "image": "Top Time Towels.jpg.webp", "category": "Other"}, {"name": "Lichen Green", "qty": 13, "sizes": {"S": 1, "M": 6, "L": 3, "XL": 3}, "image": "Lichen Green.jpg.webp", "category": "Clothing"}, {"name": "Puffer Vest", "qty": 10, "sizes": {"M": 2, "L": 5, "XL": 3}, "image": "Puffer Vest.jpeg", "category": "Clothing"}, {"name": "Formation Tee", "qty": 3, "sizes": {"L": 1, "XL": 2}, "image": "Formation Tee.jpg.webp", "category": "Clothing"}, {"name": "Zip Thru Hoodie", "qty": 9, "sizes": {"S": 2, "M": 2, "L": 5}, "image": "Zip Thru Hoodie.jpeg", "category": "Clothing"}, {"name": "Ronald Jacket", "qty": 7, "sizes": {"M": 1, "L": 6}, "image": "Ronald Jacket.jpeg", "category": "Clothing"}, {"name": "Dad Cap Blue", "qty": 5, "sizes": {}, "image": "Dad Cap Blue.jpeg", "category": "Hats"}, {"name": "Dad Cap White", "qty": 3, "sizes": {}, "image": "Dad Cap White .jpeg", "category": "Hats"}, {"name": "Dad Cap Green", "qty": 3, "sizes": {}, "image": "Dad Cap green.jpeg", "category": "Hats"}, {"name": "Sunglass 0001", "qty": 3, "sizes": {}, "image": "jz310604_25-three-quarter_bf31f141_thumbnail_1024.webp", "category": "Accessories"}, {"name": "Sunglass 0003", "qty": 3, "sizes": {}, "image": "Sunglass 0003.webp", "category": "Accessories"}, {"name": "Sunglass 0004", "qty": 3, "sizes": {}, "image": "Sunglass 0004.webp", "category": "Accessories"}, {"name": "Sunglass 0005", "qty": 3, "sizes": {}, "image": "Sunglass 0005.jpeg", "category": "Accessories"}, {"name": "Card Holder", "qty": 6, "sizes": {}, "image": "Card Holder.jpg", "category": "Accessories"}, {"name": "Lighter & Cutter", "qty": 8, "sizes": {}, "image": "Lighter & Cutter.jpg", "category": "Accessories"}, {"name": "Cup Kit", "qty": 8, "sizes": {}, "image": "Cup Kit.jpg.webp", "category": "Other"}, {"name": "TBD Sunglass", "qty": 2, "sizes": {}, "image": "TBD Sunglass.jpeg", "category": "Accessories"}, {"name": "Sea 2 See", "qty": 1, "sizes": {}, "image": "Sea 2 See.jpeg", "category": "Accessories"}, {"name": "VB Purse", "qty": 1, "sizes": {}, "image": "VB purse.webp", "category": "Bags"}, {"name": "Candle Kit", "qty": 1, "sizes": {}, "image": "Candle Kit .jpeg", "category": "Other"}, {"name": "Backpack", "qty": 1, "sizes": {}, "image": "Backpack.jpg", "category": "Bags"}];
+const selected = {};
+let active = "All";
+const cats = ["All","Clothing","Bags","Hats","Accessories","Other"];
+
+function esc(s){return s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+function totalSelected(){return Object.values(selected).reduce((a,b)=>a+b,0)}
+function updateCount(){document.getElementById("count").textContent=`(${totalSelected()})`}
+function imgSrc(name){return "images/"+encodeURIComponent(name).replace(/%20/g,"%20")}
+
+function renderFilters(){
+ document.getElementById("filters").innerHTML=cats.map(c=>`<button class="filter ${c===active?"active":""}" onclick="setCat('${c}')">${c}</button>`).join("");
+}
+function setCat(c){active=c;renderFilters();renderGrid()}
+function available(i){
+ if(Object.keys(i.sizes).length)return Object.values(i.sizes).reduce((a,b)=>a+b,0);
+ return i.qty;
+}
+function renderGrid(){
+ const list=items.filter(i=>active==="All"||i.category===active);
+ document.getElementById("grid").innerHTML=list.map((i,idx)=>{
+   const real=items.indexOf(i), total=available(i), hasSizes=Object.keys(i.sizes).length;
+   const chosen=selected[real]||0;
+   let sizeHtml=hasSizes?`<div class="size-row">${Object.entries(i.sizes).map(([s,n])=>{
+     const q=selected[`${real}-${s}`]||0;
+     return `<button class="size ${q>0?"selected":""}" onclick="chooseSize(${real},'${s}')">${s} · ${n-q} available</button>`;
+   }).join("")}</div>
+   ${hasSizes?`<div class="size-selected" id="size-selected-${real}"></div>`:""}`:"";
+   const displayQty=hasSizes?Object.keys(i.sizes).reduce((sum,s)=>sum+(selected[`${real}-${s}`]||0),0):chosen;
+   return `<article class="card"><div class="photo"><img src="${imgSrc(i.image)}" alt="${esc(i.name)}" onerror="this.style.opacity=.25"></div>
+   <div class="body"><div class="cat">${i.category}</div><div class="name">${esc(i.name)}</div><div class="avail">Available: <strong>${total}</strong>${hasSizes?" · selected: "+displayQty:""}</div>${sizeHtml}
+   ${hasSizes?`<div class="controls"><div class="qty"><button onclick="changeSelectedSize(${real},-1)">−</button><strong id="size-qty-${real}">${selected[`${real}-${(window.currentSize&&window.currentSize[real])||Object.keys(i.sizes)[0]}`]||0}</strong><button onclick="changeSelectedSize(${real},1)">+</button></div><span class="selected-size-label" id="selected-size-label-${real}">Size ${(window.currentSize&&window.currentSize[real])||Object.keys(i.sizes)[0]}</span></div>`:
+   `<div class="controls"><div class="qty"><button onclick="changeQty(${real},-1)">−</button><strong>${chosen}</strong><button onclick="changeQty(${real},1)">+</button></div><button class="select" onclick="addItem(${real})">Select</button></div>`}</div></article>`;
+ }).join("")||`<div class="empty">No items in this category.</div>`;
+}
+function chooseSize(idx,s){
+ window.currentSize=window.currentSize||{};
+ window.currentSize[idx]=s;
+ renderGrid();
+}
+function addSizeItem(idx,s,delta=1){
+ const i=items[idx], max=i.sizes[s]||0;
+ const key=`${idx}-${s}`;
+ const old=selected[key]||0, next=Math.max(0,Math.min(max,old+delta));
+ if(next===0) delete selected[key]; else selected[key]=next;
+ if(next===max && delta>0) toast("You have reached the available quantity for this size.");
+ updateCount(); renderGrid(); renderSelection();
+}
+function changeSelectedSize(idx,delta){
+ const i=items[idx];
+ const s=(window.currentSize&&window.currentSize[idx])||Object.keys(i.sizes)[0];
+ addSizeItem(idx,s,delta);
+}
+function changeSizeQty(idx,s,delta){ addSizeItem(idx,s,delta); }
+function addItem(idx){
+ const i=items[idx]; const has=Object.keys(i.sizes).length;
+ if(has){
+   const first=Object.keys(i.sizes).find(s=>(selected[`${idx}-${s}`]||0)<i.sizes[s]);
+   if(first) addSizeItem(idx,first,1); else toast("All available sizes are selected.");
+   return;
+ }
+ const old=selected[idx]||0, next=Math.min(i.qty,old+1);
+ if(next===i.qty) toast("You have reached the available quantity.");
+ if(next===0) delete selected[idx]; else selected[idx]=next;
+ updateCount(); renderGrid(); renderSelection();
+}
+function changeQty(idx,delta){
+ const i=items[idx];
+ if(Object.keys(i.sizes).length){ addItem(idx); return; }
+ const old=selected[idx]||0, next=Math.max(0,Math.min(i.qty,old+delta));
+ if(next===0)delete selected[idx];else selected[idx]=next;
+ updateCount();renderGrid();renderSelection();
+}
+function openDrawer(){renderSelection();document.getElementById("drawer").classList.add("open")}
+function closeDrawer(){document.getElementById("drawer").classList.remove("open")}
+function renderSelection(){
+ const el=document.getElementById("selection"); const keys=Object.keys(selected);
+ if(!keys.length){el.innerHTML=`<div class="empty">Nothing selected yet.<br>Go back to the catalogue and choose gifts.</div>`;return}
+ el.innerHTML=keys.map(k=>{
+   const parts=k.split("-"), idx=Number(parts[0]), i=items[idx], size=parts.length>1?parts.slice(1).join("-"):null;
+   return `<div class="line"><div><div class="line-name">${esc(i.name)}</div><div class="line-meta">${i.category}${size?" · Size "+size:""}</div></div><div class="line-qty">×${selected[k]}</div></div>`;
+ }).join("");
+}
+function clearSelection(){for(const k in selected)delete selected[k];updateCount();renderGrid();renderSelection()}
+function sendEmail(){
+ if(!Object.keys(selected).length){toast("Your selection is empty.");return}
+ const lines=Object.keys(selected).map(k=>{
+   const parts=k.split("-"), idx=Number(parts[0]), i=items[idx], size=parts.length>1?parts.slice(1).join("-"):null;
+   return `• ${i.name}${size?" — Size "+size:""} — x${selected[k]}`;
+ });
+ const body=`Gift Selection Request\n\nPlease set aside the following items:\n\n${lines.join("\n")}\n\nTotal items: ${totalSelected()}\n\nThank you.`;
+ location.href="mailto:allan_bertoldo@hotmail.com?subject="+encodeURIComponent("Gift Selection Request")+"&body="+encodeURIComponent(body);
+}
+function toast(t){const e=document.getElementById("toast");e.textContent=t;e.style.display="block";setTimeout(()=>e.style.display="none",1800)}
+renderFilters();renderGrid();updateCount();
+</script>
+</body>
+</html>
